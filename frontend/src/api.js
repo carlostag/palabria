@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8000/api";
+const BASE = "https://palabria-backend.up.railway.app/api";
 
 export async function sendMessage(text) {
   const res = await fetch(`${BASE}/chat`, {
