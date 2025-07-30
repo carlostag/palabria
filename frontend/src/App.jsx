@@ -7,25 +7,41 @@ function App() {
   const [chat, setChat] = useState([]);
   const [wordsLearned, setWordsLearned] = useState(0);
 
+  // Obtener número de palabras conocidas al cargar
   useEffect(() => {
-    getWords().then(words => setWordsLearned(words.length));
+    updateWordsLearned();
   }, []);
 
-  const handleSend = async () => {
-    if (!input) return;
-    setChat([...chat, { sender: "user", text: input }]);
-    const res = await sendMessage(input);
-    setChat((prev) => [...prev, { sender: "bot", text: res.response }]);
-    setInput("");
+  const updateWordsLearned = async () => {
+    try {
+      const words = await getWords();
+      setWordsLearned(words.length);
+    } catch (err) {
+      console.error("Error al obtener palabras:", err);
+    }
   };
 
-  const handleTeach = async () => {
-    if (!input) return;
-    await teachWord(input.trim());
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    // Mostrar mensaje del usuario
+    setChat((prev) => [...prev, { sender: "user", text: input }]);
+
+    try {
+      // Enviar mensaje al bot
+      const res = await sendMessage(input);
+      setChat((prev) => [...prev, { sender: "bot", text: res.response }]);
+
+      // Enseñar automáticamente
+      await teachWord(input.trim());
+
+      // Actualizar el contador
+      await updateWordsLearned();
+    } catch (err) {
+      console.error("Error al enviar mensaje o enseñar palabra:", err);
+    }
+
     setInput("");
-    const updated = await getWords();
-    setWordsLearned(updated.length);
-    alert("¡Palabra enseñada!");
   };
 
   return (
@@ -45,7 +61,6 @@ function App() {
         placeholder="Escribe algo..."
       />
       <button onClick={handleSend}>Hablar</button>
-      <button onClick={handleTeach}>Enseñar palabra</button>
     </div>
   );
 }
