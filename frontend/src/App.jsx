@@ -1,46 +1,28 @@
 import { useState, useEffect } from "react";
-import "./App.css";
-import { sendMessage, getWords, teachWord } from "./api";
+import { sendMessage, getWords } from "./api";
 
 function App() {
   const [input, setInput] = useState("");
   const [chat, setChat] = useState([]);
   const [wordsLearned, setWordsLearned] = useState(0);
 
-  // Obtener número de palabras conocidas al cargar
   useEffect(() => {
-    updateWordsLearned();
+    refreshWords();
   }, []);
 
-  const updateWordsLearned = async () => {
-    try {
-      const words = await getWords();
-      setWordsLearned(words.length);
-    } catch (err) {
-      console.error("Error al obtener palabras:", err);
-    }
+  const refreshWords = async () => {
+    const words = await getWords();
+    setWordsLearned(words.length);
   };
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    // Mostrar mensaje del usuario
-    setChat((prev) => [...prev, { sender: "user", text: input }]);
+    setChat(prev => [...prev, { sender: "user", text: input }]);
+    const res = await sendMessage(input);
+    setChat(prev => [...prev, { sender: "bot", text: res.response }]);
 
-    try {
-      // Enviar mensaje al bot
-      const res = await sendMessage(input);
-      setChat((prev) => [...prev, { sender: "bot", text: res.response }]);
-
-      // Enseñar automáticamente
-      await teachWord(input.trim());
-
-      // Actualizar el contador
-      await updateWordsLearned();
-    } catch (err) {
-      console.error("Error al enviar mensaje o enseñar palabra:", err);
-    }
-
+    await refreshWords();
     setInput("");
   };
 
@@ -48,19 +30,21 @@ function App() {
     <div className="app">
       <h1>PalabrIA 👶🤖</h1>
       <p>Palabras conocidas: {wordsLearned}</p>
-      <div className="chat-box">
+      <div className="chat-box" style={{maxHeight:"400px",overflowY:"auto",border:"1px solid #ccc",padding:"10px",marginBottom:"10px"}}>
         {chat.map((msg, i) => (
-          <div key={i} className={msg.sender}>
-            {msg.text}
+          <div key={i} style={{textAlign: msg.sender === "user" ? "right" : "left"}}>
+            <b>{msg.sender === "user" ? "Tú" : "Bot"}:</b> {msg.text}
           </div>
         ))}
       </div>
       <input
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if(e.key === 'Enter') handleSend(); }}
         placeholder="Escribe algo..."
+        style={{width:"80%",padding:"10px"}}
       />
-      <button onClick={handleSend}>Hablar</button>
+      <button onClick={handleSend} style={{padding:"10px 15px",marginLeft:"10px"}}>Enviar</button>
     </div>
   );
 }
